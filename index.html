@@ -306,6 +306,119 @@ html,body{
 (function(){
   'use strict';
 
+  /* ===================================================================
+     AUDIO — dibuat langsung lewat Web Audio API (tanpa file suara),
+     bertema "digital sporty": power-up sweep, dengungan mesin yang
+     nadanya naik mengikuti progress (mirip RPM), tick robotik, dan
+     chime konfirmasi saat selesai.
+     Catatan: browser modern memblokir suara otomatis sebelum ada
+     interaksi pengguna (autoplay policy). Kode di bawah tetap mencoba
+     memutar sedini mungkin, dan otomatis "menyusul" begitu pengguna
+     menyentuh/mengklik layar sebelum splash selesai.
+  =================================================================== */
+  let audioCtx = null;
+  let engineOsc = null, engineGain = null, engineFilter = null;
+  const SUARA_AKTIF = !prefersReducedMotion; // matikan efek berat kalau user minta kurangi animasi
+
+  function initAudio(){
+    if (!SUARA_AKTIF) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(function(){});
+    } catch(e){ audioCtx = null; }
+  }
+
+  // Fallback: kalau autoplay diblokir browser, lanjutkan begitu ada sentuhan/klik pertama
+  function aktifkanAudioSaatInteraksi(){
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(function(){});
+  }
+  ['pointerdown','touchstart','keydown'].forEach(function(evt){
+    window.addEventListener(evt, aktifkanAudioSaatInteraksi, { once:true, passive:true });
+  });
+
+  // Bunyi "sistem menyala" — sweep naik, warna sawtooth ala synth digital
+  function bunyiPowerUp(){
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc.type = 'sawtooth';
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    osc.frequency.setValueAtTime(80, t0);
+    osc.frequency.exponentialRampToValueAtTime(520, t0 + 0.55);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.16, t0 + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + 0.65);
+  }
+
+  // Tick robotik pendek — dipakai tiap teks loading berganti
+  function bunyiTick(){
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 920;
+    gain.gain.setValueAtTime(0.08, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + 0.1);
+  }
+
+  // Dengungan mesin — dinyalakan saat progress mulai, nadanya naik
+  // mengikuti persentase (efek "RPM naik" ala mobil sport)
+  function mulaiEngineHum(){
+    if (!audioCtx) return;
+    engineOsc = audioCtx.createOscillator();
+    engineGain = audioCtx.createGain();
+    engineFilter = audioCtx.createBiquadFilter();
+    engineFilter.type = 'lowpass';
+    engineFilter.frequency.value = 500;
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.value = 55;
+    engineGain.gain.value = 0.0001;
+    engineGain.gain.exponentialRampToValueAtTime(0.045, audioCtx.currentTime + 0.3);
+    engineOsc.connect(engineFilter); engineFilter.connect(engineGain); engineGain.connect(audioCtx.destination);
+    engineOsc.start();
+  }
+  function updateEngineHum(persenSekarang){
+    if (!engineOsc) return;
+    const freq = 55 + (persenSekarang / 100) * 170; // 55Hz naik ke ~225Hz
+    engineOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.06);
+  }
+  function stopEngineHum(){
+    if (!engineOsc) return;
+    const t0 = audioCtx.currentTime;
+    engineGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+    engineOsc.stop(t0 + 0.35);
+    engineOsc = null;
+  }
+
+  // Chime dua-nada saat progress 100% — kesan "sistem siap"
+  function bunyiSelesai(){
+    if (!audioCtx) return;
+    [660, 880].forEach(function(freq, i){
+      const t0 = audioCtx.currentTime + i * 0.12;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.14, t0 + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.4);
+    });
+  }
+
+  initAudio();
+  bunyiPowerUp();
+
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReducedMotion) {
     document.getElementById('splashRoot').classList.add('reduced-motion');
@@ -372,10 +485,13 @@ html,body{
   const elPercent = document.getElementById('progressPercent');
   const elText = document.getElementById('loadingText');
 
+  mulaiEngineHum();
+
   // Ganti teks loading setiap (DURASI_TOTAL / jumlah pesan)
   const intervalPesan = setInterval(function(){
     indexPesan = (indexPesan + 1) % pesanLoading.length;
     elText.style.opacity = 0;
+    bunyiTick();
     setTimeout(function(){
       elText.textContent = pesanLoading[indexPesan];
       elText.style.opacity = 1;
@@ -386,11 +502,14 @@ html,body{
     persen = Math.min(100, persen + langkahPerTick);
     elFill.style.width = persen + '%';
     elPercent.textContent = Math.round(persen) + '%';
+    updateEngineHum(persen);
 
     if (persen >= 100){
       clearInterval(intervalProgress);
       clearInterval(intervalPesan);
       elText.textContent = 'Selesai';
+      stopEngineHum();
+      bunyiSelesai();
       setTimeout(mulaiTransisiKeluar, 350);
     }
   }, INTERVAL_TICK);
@@ -422,7 +541,7 @@ html,body{
   // Fallback: kalau karena suatu sebab timer gagal jalan, tetap pindah
   // halaman maksimal setelah 6 detik supaya pengguna tidak terjebak di splash.
   setTimeout(function(){
-    if (document.getElementById('splashRoot')) goToHome();
+    if (document.getElementById('splashRoot')){ stopEngineHum(); goToHome(); }
   }, 6000);
 
 })();
