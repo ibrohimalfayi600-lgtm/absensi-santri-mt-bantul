@@ -306,6 +306,11 @@ html,body{
 (function(){
   'use strict';
 
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) {
+    document.getElementById('splashRoot').classList.add('reduced-motion');
+  }
+
   /* ===================================================================
      AUDIO — dibuat langsung lewat Web Audio API (tanpa file suara),
      bertema "digital sporty": power-up sweep, dengungan mesin yang
@@ -418,11 +423,6 @@ html,body{
 
   initAudio();
   bunyiPowerUp();
-
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReducedMotion) {
-    document.getElementById('splashRoot').classList.add('reduced-motion');
-  }
 
   /* --- Buat partikel titik mengambang secara acak (ringan, hemat performa) --- */
   function buatPartikel(jumlah){
@@ -547,4 +547,4 @@ html,body{
 })();
 </script>
 </body>
-</html>
+</html>v
