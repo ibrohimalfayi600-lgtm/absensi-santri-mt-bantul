@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B0B0D">
+<meta name="description" content="Aplikasi Absensi Santri Ma'had Tahfizh">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>Absensi Santri · Ma'had Tahfizh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#0B0B0D; --surface:#151518; --surface2:#1C1C20; --border:#2A2A2E;
+  --blue:#0058A3; --violet:#6E2585; --red:#E4002B;
+  --text:#F2F2F3; --text-dim:#9A9AA2;
+  --hadir:#1FAA59; --telat:#FF7A1A; --izin:#F2A900; --sakit:#6E2585; --alpha:#E4002B;
+  --radius:2px;
+}
+:root[data-theme="light"]{
+  --bg:#F2F2F4; --surface:#FFFFFF; --surface2:#F1F1F3; --border:#DEDEE2;
+  --text:#141416; --text-dim:#6B6B74;
+}
+:root[data-theme="light"] .stat-num,
+:root[data-theme="light"] .brand,
+:root[data-theme="light"] h1, :root[data-theme="light"] h2, :root[data-theme="light"] h3{ color:var(--text); }
+:root[data-theme="light"] .kegiatan-item .nama-kegiatan{ color:var(--text); }
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.brand,.stat-num{font-family:'Sora',sans-serif;}
+.hidden{display:none !important;}
+button{cursor:pointer;font-family:'Inter',sans-serif;border:none;}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+input,select,textarea{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:10px 12px;border-radius:var(--radius);font-size:14px;width:100%;font-family:inherit;
+}
+::placeholder{color:var(--text-dim);}
+
+/* ---------- stripe accent ---------- */
+.mstripe{height:4px;width:100%;background:linear-gradient(90deg,var(--blue) 0 33%,var(--violet) 33% 66%,var(--red) 66% 100%);}
+.mstripe-vert{width:4px;align-self:stretch;background:linear-gradient(180deg,var(--blue),var(--violet),var(--red));}
+
+/* ---------- LOGIN ---------- */
+#loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 20%,#151518,#0B0B0D 70%);padding:16px;}
+.login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.login-body{padding:32px 28px;}
+.login-logo{font-size:22px;font-weight:800;letter-spacing:.5px;margin-bottom:4px;}
+.login-logo-img{width:64px;height:64px;display:block;margin-bottom:12px;border-radius:12px;}
+.brand{display:flex;align-items:center;gap:8px;}
+.brand-icon{width:22px;height:22px;border-radius:4px;}
+.login-sub{color:var(--text-dim);font-size:13px;margin-bottom:24px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 20px;border-radius:var(--radius);font-weight:700;font-size:13px;
+  text-transform:uppercase;letter-spacing:.6px;transition:filter .15s ease-out,transform .15s ease-out;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--red);color:#fff;width:100%;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-outline{background:transparent;border:1px solid var(--blue);color:var(--blue);}
+.btn-outline:hover{background:rgba(0,88,163,.12);}
+.btn-ghost{background:transparent;color:var(--text-dim);}
+.btn-ghost:hover{color:var(--text);}
+.btn-sm{padding:8px 12px;font-size:12px;}
+.login-error{color:var(--red);font-size:13px;margin-top:10px;min-height:16px;}
+
+/* ---------- APP SHELL ---------- */
+#appView{min-height:100vh;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);}
+.topbar .brand{font-size:16px;font-weight:800;}
+.topbar .user-info{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-dim);}
+.main-wrap{flex:1;display:flex;}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;}
+.sidebar button{display:block;width:100%;text-align:left;padding:12px 20px;background:transparent;color:var(--text-dim);font-size:14px;font-weight:600;border-left:3px solid transparent;}
+.sidebar button:hover{color:var(--text);background:var(--surface2);}
+.sidebar button.active{color:var(--text);border-left-color:var(--red);background:var(--surface2);}
+.content{flex:1;padding:24px;max-width:1200px;}
+.page-title{font-size:20px;font-weight:800;margin:0 0 4px;}
+.page-sub{color:var(--text-dim);font-size:13px;margin:0 0 20px;}
+
+/* bottom nav mobile */
+.bottomnav{display:none;position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);}
+.bottomnav .mstripe{position:absolute;top:-4px;left:0;}
+.bottomnav-inner{display:flex;}
+.bottomnav button{flex:1;padding:10px 4px;background:transparent;color:var(--text-dim);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.bottomnav button.active{color:var(--red);}
+
+@media (max-width: 768px){
+  .sidebar{display:none;}
+  .bottomnav{display:block;}
+  .content{padding:16px;padding-bottom:80px;}
+}
+
+/* ---------- CARDS ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.card-body{padding:18px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;}
+.stat-card .mstripe{position:absolute;top:0;left:0;}
+.stat-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.stat-num{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;}
+
+/* ---------- kegiatan list (ustadz dashboard) ---------- */
+.kegiatan-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+.kegiatan-item .nama-kegiatan{font-weight:700;font-size:15px;margin-bottom:10px;}
+.kelas-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);}
+.kelas-row:first-of-type{border-top:none;}
+.badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:var(--radius);text-transform:uppercase;letter-spacing:.4px;}
+.badge-done{background:rgba(31,170,89,.15);color:var(--hadir);}
+.badge-pending{background:rgba(228,0,43,.12);color:var(--red);}
+
+/* ---------- absensi ---------- */
+.absensi-header{position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5;}
+.hadir-semua-btn{width:100%;background:var(--red);color:#fff;padding:12px;border-radius:var(--radius);font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:13px;margin-bottom:12px;}
+.santri-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
+.santri-nama{font-weight:600;margin-bottom:8px;font-size:14px;}
+.segctrl{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.segctrl button{padding:8px 2px;font-size:10.5px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);transition:all .15s ease-out;}
+.seg-hadir.active{background:var(--hadir);border-color:var(--hadir);color:#fff;}
+.seg-telat.active{background:var(--telat);border-color:var(--telat);color:#111;}
+.seg-izin.active{background:var(--izin);border-color:var(--izin);color:#111;}
+.seg-sakit.active{background:var(--sakit);border-color:var(--sakit);color:#fff;}
+.seg-alpha.active{background:var(--alpha);border-color:var(--alpha);color:#fff;}
+.telat-menit-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+.menit-chip{padding:6px 10px;font-size:11px;font-weight:700;border-radius:14px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);}
+.menit-chip.active{background:var(--telat);border-color:var(--telat);color:#111;}
+.menit-custom{width:70px;padding:6px 8px;font-size:12px;}
+.absensi-footer{position:sticky;bottom:0;background:var(--bg);padding:12px 0 4px;}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:.4px;padding:10px 12px;border-bottom:1px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid var(--border);}
+tr:hover td{background:var(--surface2);}
+.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+.status-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:var(--radius);}
+.pill-Hadir{background:rgba(31,170,89,.15);color:var(--hadir);}
+.pill-Telat{background:rgba(255,122,26,.15);color:var(--telat);}
+.pill-Izin{background:rgba(242,169,0,.15);color:var(--izin);}
+.pill-Sakit{background:rgba(110,37,133,.25);color:#c084d8;}
+.pill-Alpha{background:rgba(228,0,43,.15);color:var(--red);}
+
+/* ---------- ranking / leaderboard ---------- */
+.rank-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.rank-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.rank-card-head{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;}
+.rank-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
+.rank-row:last-child{border-bottom:none;}
+.rank-row:hover{background:var(--surface2);}
+.rank-medal{font-size:16px;width:22px;text-align:center;flex-shrink:0;}
+.rank-nama{flex:1;font-size:13px;font-weight:600;}
+.rank-val{font-size:12px;font-weight:700;color:var(--text-dim);}
+
+/* ---------- filter bar / forms ---------- */
+.filter-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.filter-bar > *{flex:1;min-width:130px;}
+.filter-bar .btn{flex:0 0 auto;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media (max-width:600px){.form-grid{grid-template-columns:1fr;}}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-dim);}
+
+/* ---------- toast ---------- */
+#toastWrap{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--blue);padding:12px 16px;border-radius:var(--radius);font-size:13px;min-width:220px;box-shadow:0 6px 18px rgba(0,0,0,.4);}
+.toast.error{border-left-color:var(--red);}
+.toast.success{border-left-color:var(--hadir);}
+
+/* ---------- laporan ---------- */
+.pill-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.pill-btn{padding:9px 16px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;}
+.pill-btn.active{background:var(--red);border-color:var(--red);color:#fff;}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:900px){.chart-grid{grid-template-columns:1fr;}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.chart-card h3{margin:0 0 12px;font-size:14px;}
+.chart-card canvas{max-height:280px;}
+.bar-track{background:var(--surface2);border-radius:var(--radius);height:8px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--hadir);}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(11,11,13,.6);display:flex;align-items:center;justify-content:center;z-index:998;}
+.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important;}}
+
+/* ---------- PRINT / EXPORT PDF ---------- */
+.print-only{display:none;}
+@media print{
+  .sidebar, .bottomnav, .topbar, .filter-bar, .pill-group, .toolbar,
+  .btn, #toastWrap, .loading-overlay, .print-hide { display:none !important; }
+  body{background:#fff;color:#000;}
+  .content{padding:0;max-width:none;}
+  .card, .chart-card, .stat-card, .table-wrap{background:#fff;border:1px solid #ccc;color:#000;break-inside:avoid;}
+  .stat-label{color:#555;}
+  th{color:#555;border-bottom:1px solid #999;}
+  td{border-bottom:1px solid #ddd;color:#000;}
+  .chart-grid{grid-template-columns:1fr 1fr;}
+  .print-only{display:block;margin-bottom:12px;}
+  a[href]:after{content:"";}
+}
+</style>
+</head>
+<body>
+<script>
+  (function(){
+    try {
+      var t = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch(e){}
+  })();
+</script>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginView">
+  <div class="login-card">
+    <div class="mstripe"></div>
+    <div class="login-body">
+      <img src="icons/icon-192.png" alt="Ma'had Tahfizh" class="login-logo-img">
+      <div class="login-logo">MA'HAD TAHFIZH</div>
+      <div class="login-sub">Aplikasi Absensi Santri — Masuk untuk melanjutkan</div>
+      <div class="field">
+        <label>Username</label>
+        <input id="loginUsername" type="text" placeholder="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="loginPassword" type="password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" id="btnLogin" onclick="handleLogin()">Masuk</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="appView" class="hidden">
+  <div class="topbar">
+    <div class="brand"><img src="icons/icon-32.png" alt="" class="brand-icon">MA'HAD TAHFIZH</div>
+    <div class="user-info">
+      <span id="userNama"></span>
+      <button class="btn btn-ghost btn-sm" id="themeToggleBtn" onclick="toggleTheme()">☀️</button>
+      <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="main-wrap">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="content" id="content"></div>
+  </div>
+  <div class="bottomnav">
+    <div class="mstripe" style="position:relative;"></div>
+    <div class="bottomnav-inner" id="bottomnavInner"></div>
+  </div>
+</div>
+
+<div id="toastWrap"></div>
+<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
+
+<script>
+// API_URL didefinisikan di config.js (diisi dengan URL deploy Apps Script kamu)
+if (typeof API_URL === 'undefined' || !API_URL || API_URL.indexOf('PASTE_URL') !== -1) {
+  document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('loginError').textContent =
+      '⚠️ API_URL belum diisi. Edit file config.js dan isi dengan URL deploy Apps Script kamu.';
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {
+      /* diam-diam gagal; tidak mengganggu fungsi utama aplikasi */
+    });
+  });
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+let CURRENT_USER = null;
+let REF = null; // referensi awal (kelas, kegiatan, ustadz)
+let CURRENT_VIEW = null;
+let ABSENSI_STATE = null; // sesi absensi yang sedang diedit
+
+/* ============================================================
+   HELPERS UMUM
+============================================================ */
+function showLoading(){ document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading(){ document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+function toast(msg, type){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type || '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3500);
+}
+
+function call(fnName, args, onSuccess, onError){
+  showLoading();
+
+  const url = API_URL + '?action=' + encodeURIComponent(fnName) + '&args=' + encodeURIComponent(JSON.stringify(args || []));
+
+  fetch(url, { method: 'GET' })
+    .then(function(res){
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function(data){
+      hideLoading();
+      if(data && data.__error){
+        toast('Error: ' + data.message, 'error');
+        if(onError) onError(new Error(data.message));
+        return;
+      }
+      onSuccess(data);
+    })
+    .catch(function(err){
+      hideLoading();
+      toast('Gagal terhubung ke server: ' + err.message, 'error');
+      if(onError) onError(err);
+    });
+}
+
+function todayStr(){
+  const d = new Date();
+  const p = n => (n<10?'0':'')+n;
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
+function fmtTanggalIndo(str){
+  const d = new Date(str + 'T00:00:00');
+  const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
+  const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][d.getMonth()];
+  return hari + ', ' + d.getDate() + ' ' + bulan + ' ' + d.getFullYear();
+}
+
+function esc(str){
+  const d = document.createElement('div'); d.textContent = str==null?'':str; return d.innerHTML;
+}
+
+/* ============================================================
+   TEMA DARK / LIGHT
+============================================================ */
+function toggleTheme(){
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  try { localStorage.setItem('theme', next); } catch(e){}
+  updateThemeButtonIcon();
+}
+function updateThemeButtonIcon(){
+  const btn = document.getElementById('themeToggleBtn');
+  if(!btn) return;
+  btn.textContent = document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️';
+}
+
+/* ============================================================
+   LOGIN / LOGOUT
+============================================================ */
+function handleLogin(){
+  const u = document.getElementById('loginUsername').value.trim();
+  const p = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').textContent = '';
+  if(!u || !p){ document.getElementById('loginError').textContent = 'Username dan password wajib diisi.'; return; }
+  call('doLogin', [u, p], function(res){
+    if(!res.success){ document.getElementById('loginError').textContent = res.message; return; }
+    CURRENT_USER = res;
+    initApp();
+  }, function(err){
+    document.getElementById('loginError').textContent = err.message;
+  });
+}
+
+function handleLogout(){
+  CURRENT_USER = null;
+  document.getElementById('appView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') handleLogin();
+});
+
+/* ============================================================
+   INIT APP
+============================================================ */
+function initApp(){
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+  document.getElementById('userNama').textContent = CURRENT_USER.nama + ' · ' + (CURRENT_USER.role === 'admin' ? 'Admin' : (CURRENT_USER.role === 'ustadz' ? 'Ustadz' : 'Wali Santri'));
+  updateThemeButtonIcon();
+
+  if(CURRENT_USER.role === 'wali'){
+    document.getElementById('sidebar').innerHTML = '';
+    document.getElementById('bottomnavInner').innerHTML = '';
+    renderWaliDashboard();
+    return;
+  }
+
+  call('getReferensiAwal', [], function(ref){
+    REF = ref;
+    buildNav();
+    if(CURRENT_USER.role === 'admin'){
+      navigate('admin-dashboard');
+    } else {
+      navigate('ustadz-dashboard');
+    }
+  });
+}
+
+function buildNav(){
+  const isAdmin = CURRENT_USER.role === 'admin';
+  const items = isAdmin ? [
+    {id:'admin-dashboard', label:'Dashboard', icon:'📊'},
+    {id:'admin-santri', label:'Santri', icon:'🧑‍🎓'},
+    {id:'admin-ustadz', label:'Ustadz', icon:'👳'},
+    {id:'admin-kegiatan', label:'Kegiatan', icon:'📖'},
+    {id:'admin-jadwal', label:'Jadwal', icon:'🗓️'},
+    {id:'admin-riwayat', label:'Riwayat', icon:'📜'},
+    {id:'admin-laporan', label:'Laporan', icon:'📈'},
+    {id:'admin-ranking', label:'Ranking', icon:'🏆'},
+  ] : [
+    {id:'ustadz-dashboard', label:'Dashboard', icon:'🏠'},
+    {id:'ustadz-riwayat', label:'Riwayat', icon:'📜'},
+  ];
+
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = items.map(function(it){
+    return '<button data-nav="'+it.id+'" onclick="navigate(\''+it.id+'\')">'+it.icon+'  '+it.label+'</button>';
+  }).join('');
+
+  const bottomLabels = isAdmin
+    ? [{id:'admin-dashboard',label:'Dashboard',icon:'📊'},{id:'admin-laporan',label:'Laporan',icon:'📈'},{id:'admin-ranking',label:'Ranking',icon:'🏆'},{id:'admin-riwayat',label:'Riwayat',icon:'📜'}]
+    : items;
+  document.getElementById('bottomnavInner').innerHTML = bottomLabels.map(function(it){
+    return '<button data-nav="'+it.id+'" onclick="navigate(\''+it.id+'\')"><span>'+it.icon+'</span>'+it.label+'</button>';
+  }).join('');
+}
+
+function setActiveNav(viewId){
+  document.querySelectorAll('[data-nav]').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-nav') === viewId);
+  });
+}
+
+function navigate(viewId, params){
+  CURRENT_VIEW = viewId;
+  setActiveNav(viewId.indexOf('admin-') === 0 || viewId.indexOf('ustadz-') === 0 ? viewId : viewId);
+  const map = {
+    'admin-dashboard': renderAdminDashboard,
+    'admin-santri': renderAdminSantri,
+    'admin-ustadz': renderAdminUstadz,
+    'admin-kegiatan': renderAdminKegiatan,
+    'admin-jadwal': renderAdminJadwal,
+    'admin-riwayat': renderRiwayat,
+    'admin-laporan': renderAdminLaporan,
+    'admin-ranking': renderAdminRanking,
+    'santri-detail': renderDetailSantri,
+    'ustadz-dashboard': renderUstadzDashboard,
+    'ustadz-riwayat': renderRiwayat,
+    'absensi': renderAbsensi
+  };
+  if(map[viewId]) map[viewId](params);
+}
+
+/* ============================================================
+   USTADZ: DASHBOARD HARI INI
+============================================================ */
+function renderUstadzDashboard(){
+  const c = document.getElementById('content');
+  const tgl = todayStr();
+  c.innerHTML =
+    '<h1 class="page-title">Assalamu\'alaikum, '+esc(CURRENT_USER.nama)+'</h1>'+
+    '<p class="page-sub">'+fmtTanggalIndo(tgl)+'</p>'+
+    '<div id="kegiatanList"><div class="empty-state">Memuat jadwal...</div></div>';
+
+  call('getJadwalHariIniUstadz', [CURRENT_USER.ustadzId, tgl], function(res){
+    const list = document.getElementById('kegiatanList');
+    if(!res.jadwal.length){
+      list.innerHTML = '<div class="empty-state">Tidak ada jadwal mengajar hari ini ('+res.hari+').</div>';
+      return;
+    }
+    list.innerHTML = res.jadwal.map(function(j){
+      const kelasRows = j.kelasStatus.map(function(ks){
+        if(ks.sudah){
+          return '<div class="kelas-row"><span>'+esc(ks.namaKelas)+'</span>'+
+                 '<button class="btn btn-outline btn-sm" onclick="openAbsensi(\''+j.jadwalId+'\',\''+ks.kelasId+'\',\''+esc(j.namaKegiatan)+'\',\''+esc(ks.namaKelas)+'\')">✓ Sudah — Edit</button></div>';
+        }
+        return '<div class="kelas-row"><span>'+esc(ks.namaKelas)+'</span>'+
+               '<button class="btn btn-primary btn-sm" onclick="openAbsensi(\''+j.jadwalId+'\',\''+ks.kelasId+'\',\''+esc(j.namaKegiatan)+'\',\''+esc(ks.namaKelas)+'\')">Mulai Absensi</button></div>';
+      }).join('');
+      return '<div class="kegiatan-item"><div class="nama-kegiatan">'+esc(j.namaKegiatan)+'</div>'+kelasRows+'</div>';
+    }).join('');
+  });
+}
+
+function openAbsensi(jadwalId, kelasId, namaKegiatan, namaKelas){
+  navigate('absensi', {jadwalId:jadwalId, kelasId:kelasId, namaKegiatan:namaKegiatan, namaKelas:namaKelas, tanggal: todayStr()});
+}
+
+/* ============================================================
+   ABSENSI
+============================================================ */
+function renderAbsensi(params){
+  const c = document.getElementById('content');
+  ABSENSI_STATE = {jadwalId:params.jadwalId, kelasId:params.kelasId, tanggal:params.tanggal, kegiatanId:null, ustadzId:CURRENT_USER.ustadzId, santri:[]};
+
+  c.innerHTML =
+    '<button class="btn btn-ghost btn-sm" onclick="navigate(\'ustadz-dashboard\')">← Kembali</button>'+
+    '<h1 class="page-title" style="margin-top:8px;">'+esc(params.namaKegiatan)+' · '+esc(params.namaKelas)+'</h1>'+
+    '<p class="page-sub">'+fmtTanggalIndo(params.tanggal)+'</p>'+
+    '<div class="absensi-header">'+
+      '<button class="hadir-semua-btn" onclick="setHadirSemua()">Hadir Semua</button>'+
+    '</div>'+
+    '<div id="santriRows"><div class="empty-state">Memuat data santri...</div></div>'+
+    '<div class="absensi-footer"><button class="btn btn-primary" style="width:100%;" onclick="simpanAbsensiSekarang()">Simpan Absensi</button></div>';
+
+  // cari kegiatanId dari jadwal
+  call('getJadwalHariIniUstadz', [CURRENT_USER.ustadzId, params.tanggal], function(res){
+    const j = res.jadwal.find(function(x){ return x.jadwalId === params.jadwalId; });
+    ABSENSI_STATE.kegiatanId = j ? j.kegiatanId : '';
+    ABSENSI_STATE.hari = res.hari;
+
+    call('getSantriUntukAbsensi', [params.kelasId, params.jadwalId, params.tanggal], function(santri){
+      ABSENSI_STATE.santri = santri;
+      renderSantriRows();
+    });
+  });
+}
+
+function renderSantriRows(){
+  const wrap = document.getElementById('santriRows');
+  if(!ABSENSI_STATE.santri.length){
+    wrap.innerHTML = '<div class="empty-state">Belum ada data santri aktif di kelas ini. Tambahkan lewat menu Admin &gt; Santri.</div>';
+    return;
+  }
+  const MENIT_PRESET = [5,10,15,30,45,60];
+  wrap.innerHTML = ABSENSI_STATE.santri.map(function(s, idx){
+    const telatWrap = s.status === 'Telat' ? (
+      '<div class="telat-menit-wrap">'+
+        MENIT_PRESET.map(function(m){
+          const active = Number(s.menitTelat) === m ? 'active' : '';
+          return '<button type="button" class="menit-chip '+active+'" onclick="setMenitTelat('+idx+','+m+')">'+m+'m</button>';
+        }).join('')+
+        '<input type="number" min="1" class="menit-custom" placeholder="lainnya" value="'+(MENIT_PRESET.indexOf(Number(s.menitTelat))===-1 && s.menitTelat ? s.menitTelat : '')+'" onchange="setMenitTelat('+idx+', this.value)">'+
+      '</div>'
+    ) : '';
+    return '<div class="santri-row">'+
+      '<div class="santri-nama">'+(idx+1)+'. '+esc(s.nama)+'</div>'+
+      '<div class="segctrl">'+
+        ['Hadir','Telat','Izin','Sakit','Alpha'].map(function(st){
+          const cls = 'seg-'+st.toLowerCase();
+          const active = s.status === st ? 'active' : '';
+          return '<button class="'+cls+' '+active+'" onclick="setStatus('+idx+',\''+st+'\')">'+st+'</button>';
+        }).join('')+
+      '</div>'+telatWrap+'</div>';
+  }).join('');
+}
+
+function setMenitTelat(idx, menit){
+  ABSENSI_STATE.santri[idx].menitTelat = parseInt(menit, 10) || 0;
+  renderSantriRows();
+}
+
+function setStatus(idx, status){
+  ABSENSI_STATE.santri[idx].status = status;
+  if(status === 'Telat' && !ABSENSI_STATE.santri[idx].menitTelat){
+    ABSENSI_STATE.santri[idx].menitTelat = 15;
+  }
+  renderSantriRows();
+}
+
+function setHadirSemua(){
+  ABSENSI_STATE.santri.forEach(function(s){ s.status = 'Hadir'; });
+  renderSantriRows();
+}
+
+function simpanAbsensiSekarang(){
+  const payload = {
+    jadwalId: ABSENSI_STATE.jadwalId,
+    kegiatanId: ABSENSI_STATE.kegiatanId,
+    ustadzId: ABSENSI_STATE.ustadzId,
+    kelasId: ABSENSI_STATE.kelasId,
+    tanggal: ABSENSI_STATE.tanggal,
+    hari: ABSENSI_STATE.hari,
+    inputOleh: CURRENT_USER.username,
+    items: ABSENSI_STATE.santri.map(function(s){ return {santriId:s.santriId, status:s.status, keterangan:s.keterangan||'', menitTelat:s.menitTelat||0}; })
+  };
+  call('simpanAbsensi', [payload], function(res){
+    toast('Absensi tersimpan ✓', 'success');
+    navigate('ustadz-dashboard');
+  });
+}
+
+/* ============================================================
+   RIWAYAT (ustadz & admin, pakai filter)
+============================================================ */
+function renderRiwayat(){
+  const c = document.getElementById('content');
+  const isAdmin = CURRENT_USER.role === 'admin';
+  const kelasOpt = REF.kelas.map(function(k){ return '<option value="'+k.KelasID+'">'+esc(k.NamaKelas)+'</option>'; }).join('');
+  const kegiatanOpt = REF.kegiatan.map(function(k){ return '<option value="'+k.KegiatanID+'">'+esc(k.NamaKegiatan)+'</option>'; }).join('');
+  const ustadzOpt = REF.ustadz.map(function(u){ return '<option value="'+u.UstadzID+'">'+esc(u.Nama)+'</option>'; }).join('');
+  const statusOpt = ['Hadir','Telat','Izin','Sakit','Alpha'].map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+
+  c.innerHTML =
+    '<h1 class="page-title">Riwayat Absensi</h1>'+
+    '<p class="page-sub">Filter untuk mencari data absensi.</p>'+
+    '<div class="filter-bar">'+
+      '<input type="date" id="fTglMulai" value="'+todayStr()+'">'+
+      '<input type="date" id="fTglAkhir" value="'+todayStr()+'">'+
+      '<select id="fKelas"><option value="">Semua Kelas</option>'+kelasOpt+'</select>'+
+      (isAdmin ? '<select id="fUstadz"><option value="">Semua Ustadz</option>'+ustadzOpt+'</select>' : '')+
+      '<select id="fKegiatan"><option value="">Semua Kegiatan</option>'+kegiatanOpt+'</select>'+
+      '<select id="fStatus"><option value="">Semua Status</option>'+statusOpt+'</select>'+
+      '<button class="btn btn-primary btn-sm" onclick="cariRiwayat()">Cari</button>'+
+    '</div>'+
+    '<div id="riwayatResult"></div>';
+
+  cariRiwayat();
+}
+
+function cariRiwayat(){
+  const isAdmin = CURRENT_USER.role === 'admin';
+  const filter = {
+    tanggalMulai: document.getElementById('fTglMulai').value,
+    tanggalAkhir: document.getElementById('fTglAkhir').value,
+    kelasId: document.getElementById('fKelas').value,
+    ustadzId: isAdmin ? document.getElementById('fUstadz').value : CURRENT_USER.ustadzId,
+    kegiatanId: document.getElementById('fKegiatan').value,
+    status: document.getElementById('fStatus').value
+  };
+  call('getRiwayatAbsensi', [filter], function(rows){
+    const wrap = document.getElementById('riwayatResult');
+    if(!rows.length){ wrap.innerHTML = '<div class="empty-state">Tidak ada data untuk filter ini.</div>'; return; }
+    wrap.innerHTML = '<div class="table-wrap"><table><thead><tr>'+
+      '<th>Tanggal</th><th>Santri</th><th>Kelas</th><th>Ustadz</th><th>Kegiatan</th><th>Status</th>'+
+      '</tr></thead><tbody>'+
+      rows.map(function(r){
+        const telatInfo = (r.status === 'Telat' && r.menitTelat) ? ' <span style="color:var(--text-dim);font-size:11px;">('+r.menitTelat+' mnt)</span>' : '';
+        return '<tr><td>'+r.tanggal+'</td><td>'+esc(r.namaSantri)+'</td><td>'+esc(r.namaKelas)+'</td>'+
+          '<td>'+esc(r.namaUstadz)+'</td><td>'+esc(r.namaKegiatan)+'</td>'+
+          '<td><span class="status-pill pill-'+r.status+'">'+r.status+'</span>'+telatInfo+'</td></tr>';
+      }).join('')+
+      '</tbody></table></div>';
+  });
+}
+
+/* ============================================================
+   ADMIN: DASHBOARD
+============================================================ */
+function renderAdminDashboard(){
+  const c = document.getElementById('content');
+  const tgl = todayStr();
+  c.innerHTML =
+    '<h1 class="page-title">Halo, '+esc(CURRENT_USER.nama)+'</h1>'+
+    '<p class="page-sub">'+fmtTanggalIndo(tgl)+'</p>'+
+    '<div id="dashStats"><div class="empty-state">Memuat statistik...</div></div>';
+
+  call('getDashboardStats', [tgl], function(s){
+    const stripeColors = ['var(--blue)','var(--violet)','var(--red)'];
+    const statHtml =
+      '<div class="stat-grid">'+
+        statCard('Total Santri Aktif', s.totalSantri, 0)+
+        statCard('Hadir', s.countByStatus.Hadir, 1)+
+        statCard('Telat', s.countByStatus.Telat, 2)+
+        statCard('Izin', s.countByStatus.Izin, 0)+
+        statCard('Sakit', s.countByStatus.Sakit, 1)+
+        statCard('Alpha', s.countByStatus.Alpha, 2)+
+        statCard('Sesi Sudah Diabsen', s.sesiSudahHariIni + ' / ' + s.totalSesiHariIni, 0)+
+      '</div>'+
+      '<div class="card"><div class="card-body">'+
+        '<h3 style="margin-top:0;">Kehadiran per Kelas</h3>'+
+        '<div class="table-wrap"><table><thead><tr><th>Kelas</th><th>Total Santri</th><th>Hadir Hari Ini</th></tr></thead><tbody>'+
+        s.perKelas.map(function(k){ return '<tr><td>'+esc(k.namaKelas)+'</td><td>'+k.totalSantri+'</td><td>'+k.hadir+'</td></tr>'; }).join('')+
+        '</tbody></table></div></div></div>'+
+      '<div class="card"><div class="card-body">'+
+        '<h3 style="margin-top:0;">Status Ustadz Hari Ini</h3>'+
+        '<div class="table-wrap"><table><thead><tr><th>Ustadz</th><th>Sesi</th><th>Status</th></tr></thead><tbody>'+
+        s.ustadzStatus.map(function(u){
+          const done = u.totalSesi>0 && u.sesiSudah === u.totalSesi;
+          const badge = u.totalSesi===0 ? '<span class="status-pill">Libur</span>' :
+            (done ? '<span class="badge badge-done">Selesai</span>' : '<span class="badge badge-pending">'+u.sesiSudah+'/'+u.totalSesi+' Sesi</span>');
+          return '<tr><td>'+esc(u.nama)+'</td><td>'+u.sesiSudah+' / '+u.totalSesi+'</td><td>'+badge+'</td></tr>';
+        }).join('')+
+        '</tbody></table></div></div></div>';
+    document.getElementById('dashStats').innerHTML = statHtml;
+  });
+
+  function statCard(label, val, colorIdx){
+    return '<div class="stat-card"><div class="mstripe"></div><div class="stat-label">'+label+'</div><div class="stat-num">'+val+'</div></div>';
+  }
+}
+
+/* ============================================================
+   ADMIN: SANTRI (CRUD)
+============================================================ */
+function renderAdminSantri(){
+  const c = document.getElementById('content');
+  c.innerHTML =
+    '<h1 class="page-title">Data Santri</h1>'+
+    '<p class="page-sub">Kelola daftar santri per kelas.</p>'+
+    '<div class="toolbar"><div></div><button class="btn btn-primary btn-sm" onclick="formSantri()">+ Tambah Santri</button></div>'+
+    '<div id="formSantriWrap"></div>'+
+    '<div id="santriTable"><div class="empty-state">Memuat...</div></div>';
+  loadSantriTable();
+}
+
+function loadSantriTable(){
+  call('getAllSantri', [], function(rows){
+    const wrap = document.getElementById('santriTable');
+    if(!rows.length){ wrap.innerHTML = '<div class="empty-state">Belum ada data santri.</div>'; return; }
+    wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Status</th><th>Akun Wali</th><th></th></tr></thead><tbody>'+
+      rows.map(function(s){
+        const waliCell = s.waliUsername
+          ? '<span class="badge badge-done">'+esc(s.waliUsername)+'</span> <button class="btn btn-ghost btn-sm" onclick="hapusAkunWaliSantri(\''+s.santriId+'\')">Hapus</button>'
+          : '<button class="btn btn-outline btn-sm" onclick="buatAkunWali(\''+s.santriId+'\',\''+esc(s.nama).replace(/'/g,"\\'")+'\')">+ Buat Akun</button>';
+        return '<tr><td>'+esc(s.nama)+'</td><td>'+esc(s.namaKelas)+'</td>'+
+          '<td>'+(s.aktif ? '<span class="badge badge-done">Aktif</span>' : '<span class="badge badge-pending">Nonaktif</span>')+'</td>'+
+          '<td>'+waliCell+'</td>'+
+          '<td style="text-align:right;">'+
+          '<button class="btn btn-outline btn-sm" onclick=\'formSantri('+JSON.stringify(s)+')\'>Edit</button> '+
+          (s.aktif ? '<button class="btn btn-ghost btn-sm" onclick="nonaktifkanSantri(\''+s.santriId+'\')">Nonaktifkan</button>' : '')+
+          '</td></tr>';
+      }).join('')+
+      '</tbody></table></div>';
+  });
+}
+
+function buatAkunWali(santriId, namaSantri){
+  const username = prompt('Buat username login untuk wali dari "'+namaSantri+'":');
+  if(!username) return;
+  const password = prompt('Buat password (bebas, minimal 6 karakter):');
+  if(!password) return;
+  const namaWali = prompt('Nama wali/orang tua (untuk ditampilkan):') || ('Wali ' + namaSantri);
+  call('saveAkunWali', [{ santriId: santriId, username: username.trim(), password: password, namaWali: namaWali }], function(res){
+    if(!res.success){ toast(res.message, 'error'); return; }
+    toast('Akun wali dibuat: ' + username.trim(), 'success');
+    loadSantriTable();
+  });
+}
+
+function hapusAkunWaliSantri(santriId){
+  if(!confirm('Hapus akun wali untuk santri ini?')) return;
+  call('hapusAkunWali', [santriId], function(res){
+    if(!res.success){ toast(res.message, 'error'); return; }
+    toast('Akun wali dihapus', 'success');
+    loadSantriTable();
+  });
+}
+
+function formSantri(existing){
+  const wrap = document.getElementById('formSantriWrap');
+  const kelasOpt = REF.kelas.map(function(k){
+    const sel = existing && existing.kelasId === k.KelasID ? 'selected' : '';
+    return '<option value="'+k.KelasID+'" '+sel+'>'+esc(k.NamaKelas)+'</option>';
+  }).join('');
+  wrap.innerHTML = '<div class="card"><div class="card-body">'+
+    '<h3 style="margin-top:0;">'+(existing?'Edit':'Tambah')+' Santri</h3>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Nama</label><input id="sfNama" value="'+(existing?esc(existing.nama):'')+'"></div>'+
+      '<div class="field"><label>Kelas</label><select id="sfKelas">'+kelasOpt+'</select></div>'+
+    '</div>'+
+    '<button class="btn btn-primary btn-sm" onclick="simpanSantri('+(existing?"'"+existing.santriId+"'":'null')+')">Simpan</button> '+
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'formSantriWrap\').innerHTML=\'\'">Batal</button>'+
+    '</div></div>';
+}
+
+function simpanSantri(santriId){
+  const data = { santriId: santriId, nama: document.getElementById('sfNama').value.trim(), kelasId: document.getElementById('sfKelas').value };
+  if(!data.nama){ toast('Nama wajib diisi', 'error'); return; }
+  call('saveSantri', [data], function(){
+    toast('Data santri tersimpan', 'success');
+    document.getElementById('formSantriWrap').innerHTML = '';
+    loadSantriTable();
+  });
+}
+
+function nonaktifkanSantri(id){
+  if(!confirm('Nonaktifkan santri ini? Riwayat absensi lama tetap tersimpan.')) return;
+  call('hapusSantri', [id], function(){ toast('Santri dinonaktifkan', 'success'); loadSantriTable(); });
+}
+
+/* ============================================================
+   ADMIN: USTADZ (CRUD)
+============================================================ */
+function renderAdminUstadz(){
+  const c = document.getElementById('content');
+  c.innerHTML =
+    '<h1 class="page-title">Data Ustadz</h1>'+
+    '<p class="page-sub">Kelola daftar ustadz pengajar.</p>'+
+    '<div class="toolbar"><div></div><button class="btn btn-primary btn-sm" onclick="formUstadz()">+ Tambah Ustadz</button></div>'+
+    '<div id="formUstadzWrap"></div>'+
+    '<div id="ustadzTable"><div class="empty-state">Memuat...</div></div>';
+  loadUstadzTable();
+}
+
+function loadUstadzTable(){
+  call('getAllUstadz', [], function(rows){
+    document.getElementById('ustadzTable').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Status</th><th></th></tr></thead><tbody>'+
+      rows.map(function(u){
+        return '<tr><td>'+esc(u.nama)+'</td>'+
+          '<td>'+(u.aktif ? '<span class="badge badge-done">Aktif</span>' : '<span class="badge badge-pending">Nonaktif</span>')+'</td>'+
+          '<td style="text-align:right;"><button class="btn btn-outline btn-sm" onclick=\'formUstadz('+JSON.stringify(u)+')\'>Edit</button></td></tr>';
+      }).join('')+'</tbody></table></div>';
+  });
+}
+
+function formUstadz(existing){
+  const wrap = document.getElementById('formUstadzWrap');
+  wrap.innerHTML = '<div class="card"><div class="card-body">'+
+    '<h3 style="margin-top:0;">'+(existing?'Edit':'Tambah')+' Ustadz</h3>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Nama</label><input id="ufNama" value="'+(existing?esc(existing.nama):'')+'"></div>'+
+      (existing?'':
+        '<div class="field"><label>Username Login</label><input id="ufUsername" placeholder="misal: fulan"></div>'+
+        '<div class="field"><label>Password Login</label><input id="ufPassword" placeholder="minimal 6 karakter"></div>'
+      )+
+    '</div>'+
+    '<button class="btn btn-primary btn-sm" onclick="simpanUstadz('+(existing?"'"+existing.ustadzId+"'":'null')+')">Simpan</button> '+
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'formUstadzWrap\').innerHTML=\'\'">Batal</button>'+
+    '</div></div>';
+}
+
+function simpanUstadz(ustadzId){
+  const data = { ustadzId: ustadzId, nama: document.getElementById('ufNama').value.trim() };
+  if(!ustadzId){
+    data.username = document.getElementById('ufUsername').value.trim();
+    data.password = document.getElementById('ufPassword').value;
+    if(!data.username || !data.password){ toast('Username & password wajib diisi untuk ustadz baru', 'error'); return; }
+  }
+  if(!data.nama){ toast('Nama wajib diisi', 'error'); return; }
+  call('saveUstadz', [data], function(){
+    toast('Data ustadz tersimpan', 'success');
+    document.getElementById('formUstadzWrap').innerHTML = '';
+    loadUstadzTable();
+    call('getReferensiAwal', [], function(ref){ REF = ref; });
+  });
+}
+
+/* ============================================================
+   ADMIN: KEGIATAN (CRUD)
+============================================================ */
+function renderAdminKegiatan(){
+  const c = document.getElementById('content');
+  c.innerHTML =
+    '<h1 class="page-title">Data Kegiatan / Mapel</h1>'+
+    '<p class="page-sub">Kelola jenis kegiatan (halaqoh, mapel, dsb) yang bisa dipakai di jadwal.</p>'+
+    '<div class="toolbar"><div></div><button class="btn btn-primary btn-sm" onclick="formKegiatan()">+ Tambah Kegiatan</button></div>'+
+    '<div id="formKegiatanWrap"></div>'+
+    '<div id="kegiatanTable"><div class="empty-state">Memuat...</div></div>';
+  loadKegiatanTable();
+}
+
+function loadKegiatanTable(){
+  call('getAllKegiatan', [], function(rows){
+    document.getElementById('kegiatanTable').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Nama Kegiatan</th><th></th></tr></thead><tbody>'+
+      rows.map(function(k){
+        return '<tr><td>'+esc(k.nama)+'</td><td style="text-align:right;"><button class="btn btn-outline btn-sm" onclick=\'formKegiatan('+JSON.stringify(k)+')\'>Edit</button></td></tr>';
+      }).join('')+'</tbody></table></div>';
+  });
+}
+
+function formKegiatan(existing){
+  const wrap = document.getElementById('formKegiatanWrap');
+  wrap.innerHTML = '<div class="card"><div class="card-body">'+
+    '<h3 style="margin-top:0;">'+(existing?'Edit':'Tambah')+' Kegiatan</h3>'+
+    '<div class="field"><label>Nama Kegiatan</label><input id="kfNama" value="'+(existing?esc(existing.nama):'')+'"></div>'+
+    '<button class="btn btn-primary btn-sm" onclick="simpanKegiatan('+(existing?"'"+existing.kegiatanId+"'":'null')+')">Simpan</button> '+
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'formKegiatanWrap\').innerHTML=\'\'">Batal</button>'+
+    '</div></div>';
+}
+
+function simpanKegiatan(kegiatanId){
+  const data = { kegiatanId: kegiatanId, nama: document.getElementById('kfNama').value.trim() };
+  if(!data.nama){ toast('Nama wajib diisi', 'error'); return; }
+  call('saveKegiatan', [data], function(){
+    toast('Kegiatan tersimpan', 'success');
+    document.getElementById('formKegiatanWrap').innerHTML = '';
+    loadKegiatanTable();
+    call('getReferensiAwal', [], function(ref){ REF = ref; });
+  });
+}
+
+/* ============================================================
+   ADMIN: JADWAL (CRUD)
+============================================================ */
+function renderAdminJadwal(){
+  const c = document.getElementById('content');
+  c.innerHTML =
+    '<h1 class="page-title">Jadwal KBM Mingguan</h1>'+
+    '<p class="page-sub">Atur kegiatan per ustadz per hari.</p>'+
+    '<div class="toolbar"><div></div><button class="btn btn-primary btn-sm" onclick="formJadwal()">+ Tambah Jadwal</button></div>'+
+    '<div id="formJadwalWrap"></div>'+
+    '<div id="jadwalTable"><div class="empty-state">Memuat...</div></div>';
+  loadJadwalTable();
+}
+
+function loadJadwalTable(){
+  call('getAllJadwal', [], function(rows){
+    document.getElementById('jadwalTable').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Hari</th><th>Ustadz</th><th>Kegiatan</th><th>Urutan</th><th></th></tr></thead><tbody>'+
+      rows.map(function(j){
+        return '<tr><td>'+esc(j.hari)+'</td><td>'+esc(j.namaUstadz)+'</td><td>'+esc(j.namaKegiatan)+'</td><td>'+j.urutan+'</td>'+
+          '<td style="text-align:right;">'+
+          '<button class="btn btn-outline btn-sm" onclick=\'formJadwal('+JSON.stringify(j)+')\'>Edit</button> '+
+          '<button class="btn btn-ghost btn-sm" onclick="hapusJadwalItem(\''+j.jadwalId+'\')">Hapus</button></td></tr>';
+      }).join('')+'</tbody></table></div>';
+  });
+}
+
+function formJadwal(existing){
+  const wrap = document.getElementById('formJadwalWrap');
+  const hariOpt = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'].map(function(h){
+    const sel = existing && existing.hari===h ? 'selected':'';
+    return '<option '+sel+'>'+h+'</option>';
+  }).join('');
+  const ustadzOpt = REF.ustadz.map(function(u){
+    const sel = existing && existing.ustadzId===u.UstadzID ? 'selected':'';
+    return '<option value="'+u.UstadzID+'" '+sel+'>'+esc(u.Nama)+'</option>';
+  }).join('');
+  const kegiatanOpt = REF.kegiatan.map(function(k){
+    const sel = existing && existing.kegiatanId===k.KegiatanID ? 'selected':'';
+    return '<option value="'+k.KegiatanID+'" '+sel+'>'+esc(k.NamaKegiatan)+'</option>';
+  }).join('');
+
+  wrap.innerHTML = '<div class="card"><div class="card-body">'+
+    '<h3 style="margin-top:0;">'+(existing?'Edit':'Tambah')+' Jadwal</h3>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Hari</label><select id="jfHari">'+hariOpt+'</select></div>'+
+      '<div class="field"><label>Ustadz</label><select id="jfUstadz">'+ustadzOpt+'</select></div>'+
+      '<div class="field"><label>Kegiatan</label><select id="jfKegiatan">'+kegiatanOpt+'</select></div>'+
+      '<div class="field"><label>Urutan (jam ke-)</label><input type="number" id="jfUrutan" min="1" value="'+(existing?existing.urutan:1)+'"></div>'+
+    '</div>'+
+    '<button class="btn btn-primary btn-sm" onclick="simpanJadwalItem('+(existing?"'"+existing.jadwalId+"'":'null')+')">Simpan</button> '+
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'formJadwalWrap\').innerHTML=\'\'">Batal</button>'+
+    '</div></div>';
+}
+
+function simpanJadwalItem(jadwalId){
+  const data = {
+    jadwalId: jadwalId,
+    hari: document.getElementById('jfHari').value,
+    ustadzId: document.getElementById('jfUstadz').value,
+    kegiatanId: document.getElementById('jfKegiatan').value,
+    urutan: parseInt(document.getElementById('jfUrutan').value, 10) || 1
+  };
+  call('saveJadwal', [data], function(){
+    toast('Jadwal tersimpan', 'success');
+    document.getElementById('formJadwalWrap').innerHTML = '';
+    loadJadwalTable();
+  });
+}
+
+function hapusJadwalItem(id){
+  if(!confirm('Hapus jadwal ini?')) return;
+  call('hapusJadwal', [id], function(){ toast('Jadwal dihapus', 'success'); loadJadwalTable(); });
+}
+
+/* ============================================================
+   ADMIN: LAPORAN & STATISTIK (pekanan/bulanan/semesteran/tahunan)
+============================================================ */
+let LAPORAN_STATE = { periode: 'pekanan', groupBy: 'kelas', tanggalMulai: '', tanggalAkhir: '', kelasId: '', ustadzId: '' };
+let CHART_TREN = null, CHART_PIE = null, CHART_BAR = null, CHART_KELAS = null;
+
+function renderAdminLaporan(){
+  const c = document.getElementById('content');
+  const kelasOpt = REF.kelas.map(function(k){ return '<option value="'+k.KelasID+'">'+esc(k.NamaKelas)+'</option>'; }).join('');
+  const ustadzOpt = REF.ustadz.map(function(u){ return '<option value="'+u.UstadzID+'">'+esc(u.Nama)+'</option>'; }).join('');
+
+  c.innerHTML =
+    '<div class="toolbar">'+
+      '<div><h1 class="page-title" style="margin-bottom:0;">Laporan & Statistik</h1>'+
+      '<p class="page-sub" style="margin-bottom:0;">Rekap kehadiran per santri, per kelas, dan per ustadz.</p></div>'+
+      '<button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>'+
+    '</div>'+
+    '<div class="print-only"><h2 style="margin:0;">Laporan Absensi Santri</h2>'+
+      '<p id="printPeriodeLabel" style="color:#555;margin:4px 0 0;"></p></div>'+
+
+    '<div class="pill-group" id="periodePills">'+
+      periodeBtn('pekanan','Pekanan')+ periodeBtn('bulanan','Bulanan')+
+      periodeBtn('semesteran','Semesteran')+ periodeBtn('tahunan','Tahunan')+
+      periodeBtn('custom','Custom')+
+    '</div>'+
+
+    '<div class="filter-bar" id="customRangeWrap" style="display:none;">'+
+      '<input type="date" id="lTglMulai"><input type="date" id="lTglAkhir">'+
+      '<button class="btn btn-outline btn-sm" onclick="terapkanCustomRange()">Terapkan</button>'+
+    '</div>'+
+
+    '<div class="filter-bar">'+
+      '<select id="lGroupBy" onchange="onGroupByChange()">'+
+        '<option value="kelas">Rekap per Kelas</option>'+
+        '<option value="ustadz">Rekap per Ustadz</option>'+
+        '<option value="santri">Rekap per Santri</option>'+
+      '</select>'+
+      '<select id="lKelasFilter"><option value="">Semua Kelas</option>'+kelasOpt+'</select>'+
+      '<select id="lUstadzFilter"><option value="">Semua Ustadz</option>'+ustadzOpt+'</select>'+
+      '<button class="btn btn-primary btn-sm" onclick="muatLaporan()">Terapkan Filter</button>'+
+    '</div>'+
+
+    '<p class="page-sub" id="periodeLabel"></p>'+
+
+    '<div class="stat-grid" id="laporanSummary"></div>'+
+
+    '<div class="chart-grid">'+
+      '<div class="chart-card"><h3>Tren Kehadiran</h3><canvas id="chartTren"></canvas></div>'+
+      '<div class="chart-card"><h3>Proporsi Status</h3><canvas id="chartPie"></canvas></div>'+
+    '</div>'+
+    '<div class="chart-card" style="margin-bottom:16px;"><h3>Perbandingan Antar Kelas</h3><canvas id="chartKelasCompare"></canvas></div>'+
+    '<div class="chart-card" style="margin-bottom:16px;"><h3 id="barTitle">Persentase Kehadiran</h3><canvas id="chartBar"></canvas></div>'+
+
+    '<div id="laporanTable"></div>';
+
+  document.getElementById('lGroupBy').value = LAPORAN_STATE.groupBy;
+  setPeriode(LAPORAN_STATE.periode || 'pekanan');
+}
+
+function periodeBtn(id, label){
+  return '<button class="pill-btn" data-periode="'+id+'" onclick="setPeriode(\''+id+'\')">'+label+'</button>';
+}
+
+function setPeriode(periode){
+  LAPORAN_STATE.periode = periode;
+  document.querySelectorAll('#periodePills .pill-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-periode') === periode);
+  });
+  document.getElementById('customRangeWrap').style.display = periode === 'custom' ? 'flex' : 'none';
+
+  if(periode === 'custom'){
+    if(!LAPORAN_STATE.tanggalMulai){
+      document.getElementById('lTglMulai').value = todayStr();
+      document.getElementById('lTglAkhir').value = todayStr();
+    }
+    return; // menunggu user klik "Terapkan"
+  }
+  call('getRentangPeriode', [periode, todayStr()], function(range){
+    LAPORAN_STATE.tanggalMulai = range.tanggalMulai;
+    LAPORAN_STATE.tanggalAkhir = range.tanggalAkhir;
+    muatLaporan();
+  });
+}
+
+function terapkanCustomRange(){
+  LAPORAN_STATE.tanggalMulai = document.getElementById('lTglMulai').value;
+  LAPORAN_STATE.tanggalAkhir = document.getElementById('lTglAkhir').value;
+  if(!LAPORAN_STATE.tanggalMulai || !LAPORAN_STATE.tanggalAkhir){ toast('Isi tanggal mulai & akhir', 'error'); return; }
+  muatLaporan();
+}
+
+function onGroupByChange(){
+  LAPORAN_STATE.groupBy = document.getElementById('lGroupBy').value;
+}
+
+function muatLaporan(){
+  LAPORAN_STATE.groupBy = document.getElementById('lGroupBy').value;
+  LAPORAN_STATE.kelasId = document.getElementById('lKelasFilter').value;
+  LAPORAN_STATE.ustadzId = document.getElementById('lUstadzFilter').value;
+
+  document.getElementById('periodeLabel').textContent =
+    fmtTanggalIndo(LAPORAN_STATE.tanggalMulai) + '  —  ' + fmtTanggalIndo(LAPORAN_STATE.tanggalAkhir);
+  const printLabelEl = document.getElementById('printPeriodeLabel');
+  if(printLabelEl){
+    const groupLabel = LAPORAN_STATE.groupBy === 'santri' ? 'Per Santri' : (LAPORAN_STATE.groupBy === 'kelas' ? 'Per Kelas' : 'Per Ustadz');
+    printLabelEl.textContent = groupLabel + ' · ' + fmtTanggalIndo(LAPORAN_STATE.tanggalMulai) + ' — ' + fmtTanggalIndo(LAPORAN_STATE.tanggalAkhir);
+  }
+
+  const filterRekap = {
+    tanggalMulai: LAPORAN_STATE.tanggalMulai, tanggalAkhir: LAPORAN_STATE.tanggalAkhir,
+    groupBy: LAPORAN_STATE.groupBy, kelasId: LAPORAN_STATE.kelasId, ustadzId: LAPORAN_STATE.ustadzId
+  };
+  const filterTren = {
+    tanggalMulai: LAPORAN_STATE.tanggalMulai, tanggalAkhir: LAPORAN_STATE.tanggalAkhir,
+    kelasId: LAPORAN_STATE.kelasId, ustadzId: LAPORAN_STATE.ustadzId
+  };
+
+  call('getLaporanRekap', [filterRekap], function(rekap){
+    renderLaporanSummary(rekap.summary);
+    renderLaporanTable(rekap.rows);
+    renderChartBar(rekap.rows);
+    renderChartPie(rekap.summary);
+  });
+  call('getLaporanTren', [filterTren], function(tren){
+    renderChartTren(tren);
+  });
+  call('getLaporanRekap', [{ tanggalMulai: LAPORAN_STATE.tanggalMulai, tanggalAkhir: LAPORAN_STATE.tanggalAkhir, groupBy: 'kelas' }], function(rekapKelas){
+    renderChartKelasCompare(rekapKelas.rows);
+  });
+}
+
+function renderLaporanSummary(s){
+  function card(label, val){
+    return '<div class="stat-card"><div class="mstripe"></div><div class="stat-label">'+label+'</div><div class="stat-num">'+val+'</div></div>';
+  }
+  document.getElementById('laporanSummary').innerHTML =
+    card('Total Tercatat', s.total) + card('Hadir', s.hadir) + card('Telat', s.telat) + card('Izin', s.izin) +
+    card('Sakit', s.sakit) + card('Alpha', s.alpha) + card('% Kehadiran', s.persenHadir + '%');
+}
+
+function renderLaporanTable(rows){
+  const wrap = document.getElementById('laporanTable');
+  if(!rows.length){ wrap.innerHTML = '<div class="empty-state">Belum ada data absensi pada periode ini.</div>'; return; }
+  const labelKolom = LAPORAN_STATE.groupBy === 'santri' ? 'Santri' : (LAPORAN_STATE.groupBy === 'kelas' ? 'Kelas' : 'Ustadz');
+  const clickable = LAPORAN_STATE.groupBy === 'santri';
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr>'+
+    '<th>'+labelKolom+'</th><th>Hadir</th><th>Telat</th><th>Izin</th><th>Sakit</th><th>Alpha</th><th>Total</th><th>% Hadir</th>'+
+    '</tr></thead><tbody>'+
+    rows.map(function(r){
+      const trAttr = clickable ? ' style="cursor:pointer;" onclick="navigate(\'santri-detail\',{santriId:\''+r.id+'\'})"' : '';
+      const namaCell = clickable ? esc(r.nama)+' <span class="print-hide" style="color:var(--text-dim);font-size:11px;">→ lihat detail</span>' : esc(r.nama);
+      const telatCell = r.telat + (r.telat && r.rataMenitTelat ? ' <span style="color:var(--text-dim);font-size:11px;">(avg '+r.rataMenitTelat+'m)</span>' : '');
+      return '<tr'+trAttr+'><td>'+namaCell+'</td><td>'+r.hadir+'</td><td>'+telatCell+'</td><td>'+r.izin+'</td><td>'+r.sakit+'</td><td>'+r.alpha+'</td><td>'+r.total+'</td>'+
+        '<td style="min-width:120px;"><div class="bar-track"><div class="bar-fill" style="width:'+r.persenHadir+'%;"></div></div>'+
+        '<span style="font-size:11px;color:var(--text-dim);">'+r.persenHadir+'%</span></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+function renderChartTren(tren){
+  const ctx = document.getElementById('chartTren').getContext('2d');
+  if(CHART_TREN) CHART_TREN.destroy();
+  const labelPrefix = tren.bucketType === 'month' ? 'Bulan ' : (tren.bucketType === 'week' ? 'Mgg ' : '');
+  CHART_TREN = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: tren.labels.length ? tren.labels : ['-'],
+      datasets: [
+        {label:'Hadir', data:tren.hadir, borderColor:'#1FAA59', backgroundColor:'rgba(31,170,89,.15)', tension:.3, fill:true},
+        {label:'Telat', data:tren.telat, borderColor:'#FF7A1A', backgroundColor:'rgba(255,122,26,.1)', tension:.3},
+        {label:'Izin', data:tren.izin, borderColor:'#F2A900', backgroundColor:'rgba(242,169,0,.1)', tension:.3},
+        {label:'Sakit', data:tren.sakit, borderColor:'#6E2585', backgroundColor:'rgba(110,37,133,.1)', tension:.3},
+        {label:'Alpha', data:tren.alpha, borderColor:'#E4002B', backgroundColor:'rgba(228,0,43,.1)', tension:.3}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{labels:{color:'#F2F2F3', font:{size:11}}} },
+      scales:{
+        x:{ticks:{color:'#9A9AA2', font:{size:10}}, grid:{color:'#2A2A2E'}},
+        y:{ticks:{color:'#9A9AA2'}, grid:{color:'#2A2A2E'}, beginAtZero:true}
+      }
+    }
+  });
+}
+
+function renderChartPie(summary){
+  const ctx = document.getElementById('chartPie').getContext('2d');
+  if(CHART_PIE) CHART_PIE.destroy();
+  CHART_PIE = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Hadir','Telat','Izin','Sakit','Alpha'],
+      datasets:[{data:[summary.hadir,summary.telat,summary.izin,summary.sakit,summary.alpha],
+        backgroundColor:['#1FAA59','#FF7A1A','#F2A900','#6E2585','#E4002B'], borderColor:'#151518', borderWidth:2}]
+    },
+    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'bottom', labels:{color:'#F2F2F3', font:{size:11}}}} }
+  });
+}
+
+function renderChartBar(rows){
+  const labelKolom = LAPORAN_STATE.groupBy === 'santri' ? 'Persentase Kehadiran per Santri' :
+    (LAPORAN_STATE.groupBy === 'kelas' ? 'Persentase Kehadiran per Kelas' : 'Persentase Kehadiran per Ustadz');
+  document.getElementById('barTitle').textContent = labelKolom;
+
+  const top = rows.slice(0, 25); // batasi biar chart tetap terbaca kalau santri banyak
+  const ctx = document.getElementById('chartBar').getContext('2d');
+  if(CHART_BAR) CHART_BAR.destroy();
+  CHART_BAR = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: top.map(function(r){ return r.nama; }),
+      datasets:[{label:'% Hadir', data: top.map(function(r){ return r.persenHadir; }), backgroundColor:'#0058A3', borderRadius:2}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#9A9AA2', font:{size:10}}, grid:{display:false}},
+        y:{ticks:{color:'#9A9AA2'}, grid:{color:'#2A2A2E'}, beginAtZero:true, max:100}
+      }
+    }
+  });
+}
+
+function renderChartKelasCompare(kelasRows){
+  const rows = kelasRows.filter(function(r){ return r.total > 0; }); // sembunyikan kelas yang memang tidak punya santri (mis. Kelas 7)
+  const ctx = document.getElementById('chartKelasCompare').getContext('2d');
+  if(CHART_KELAS) CHART_KELAS.destroy();
+  const warna = ['#0058A3','#6E2585','#E4002B','#FF7A1A','#1FAA59'];
+  CHART_KELAS = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: ['Hadir','Telat','Izin','Sakit','Alpha'],
+      datasets: rows.map(function(r, i){
+        return { label:r.nama, data:[r.hadir, r.telat, r.izin, r.sakit, r.alpha], backgroundColor: warna[i % warna.length], borderRadius:2 };
+      })
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'#F2F2F3', font:{size:11}}}},
+      scales:{
+        x:{ticks:{color:'#9A9AA2', font:{size:11}}, grid:{display:false}},
+        y:{ticks:{color:'#9A9AA2'}, grid:{color:'#2A2A2E'}, beginAtZero:true}
+      }
+    }
+  });
+}
+
+/* ============================================================
+   DETAIL SANTRI (riwayat kronologis satu anak: pekanan/bulanan/dst)
+============================================================ */
+let DETAIL_STATE = { santriId: null, periode: 'bulanan', tanggalMulai: '', tanggalAkhir: '' };
+let CHART_DETAIL_TREN = null;
+
+function renderDetailSantri(params){
+  DETAIL_STATE.santriId = params.santriId;
+  const c = document.getElementById('content');
+
+  c.innerHTML =
+    '<button class="btn btn-ghost btn-sm print-hide" onclick="navigate(\'admin-laporan\')">← Kembali ke Laporan</button>'+
+    '<div class="toolbar" style="margin-top:8px;">'+
+      '<div><h1 class="page-title" id="detailNamaSantri" style="margin-bottom:0;">Memuat...</h1>'+
+      '<p class="page-sub" id="detailKelasSantri" style="margin-bottom:0;"></p></div>'+
+      '<button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>'+
+    '</div>'+
+    '<div class="print-only"><h2 style="margin:0;">Riwayat Absensi Santri</h2><p id="printDetailLabel" style="color:#555;margin:4px 0 0;"></p></div>'+
+
+    '<div class="pill-group" id="detailPeriodePills">'+
+      detailPeriodeBtn('pekanan','Pekanan')+ detailPeriodeBtn('bulanan','Bulanan')+
+      detailPeriodeBtn('semesteran','Semesteran')+ detailPeriodeBtn('tahunan','Tahunan')+
+      detailPeriodeBtn('custom','Custom')+
+    '</div>'+
+    '<div class="filter-bar" id="detailCustomRangeWrap" style="display:none;">'+
+      '<input type="date" id="dTglMulai"><input type="date" id="dTglAkhir">'+
+      '<button class="btn btn-outline btn-sm" onclick="terapkanDetailCustomRange()">Terapkan</button>'+
+    '</div>'+
+
+    '<div class="stat-grid" id="detailSummary"></div>'+
+    '<div class="chart-card" style="margin-bottom:16px;"><h3>Tren Kehadiran</h3><canvas id="chartDetailTren"></canvas></div>'+
+    '<h3 style="margin:0 0 10px;">Riwayat Kronologis</h3>'+
+    '<div id="detailRiwayatTable"><div class="empty-state">Memuat...</div></div>';
+
+  setDetailPeriode(DETAIL_STATE.periode || 'bulanan');
+}
+
+function detailPeriodeBtn(id, label){
+  return '<button class="pill-btn" data-dperiode="'+id+'" onclick="setDetailPeriode(\''+id+'\')">'+label+'</button>';
+}
+
+function setDetailPeriode(periode){
+  DETAIL_STATE.periode = periode;
+  document.querySelectorAll('#detailPeriodePills .pill-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-dperiode') === periode);
+  });
+  document.getElementById('detailCustomRangeWrap').style.display = periode === 'custom' ? 'flex' : 'none';
+
+  if(periode === 'custom'){
+    if(!DETAIL_STATE.tanggalMulai){
+      document.getElementById('dTglMulai').value = todayStr();
+      document.getElementById('dTglAkhir').value = todayStr();
+    }
+    return;
+  }
+  call('getRentangPeriode', [periode, todayStr()], function(range){
+    DETAIL_STATE.tanggalMulai = range.tanggalMulai;
+    DETAIL_STATE.tanggalAkhir = range.tanggalAkhir;
+    muatDetailSantri();
+  });
+}
+
+function terapkanDetailCustomRange(){
+  DETAIL_STATE.tanggalMulai = document.getElementById('dTglMulai').value;
+  DETAIL_STATE.tanggalAkhir = document.getElementById('dTglAkhir').value;
+  if(!DETAIL_STATE.tanggalMulai || !DETAIL_STATE.tanggalAkhir){ toast('Isi tanggal mulai & akhir', 'error'); return; }
+  muatDetailSantri();
+}
+
+function muatDetailSantri(){
+  const filter = { tanggalMulai: DETAIL_STATE.tanggalMulai, tanggalAkhir: DETAIL_STATE.tanggalAkhir };
+  call('getDetailSantri', [DETAIL_STATE.santriId, filter], function(res){
+    document.getElementById('detailNamaSantri').textContent = res.santri.nama;
+    document.getElementById('detailKelasSantri').textContent = res.santri.namaKelas;
+
+    const printLabel = document.getElementById('printDetailLabel');
+    if(printLabel){
+      printLabel.textContent = res.santri.nama + ' (' + res.santri.namaKelas + ') · ' +
+        fmtTanggalIndo(DETAIL_STATE.tanggalMulai) + ' — ' + fmtTanggalIndo(DETAIL_STATE.tanggalAkhir);
+    }
+
+    function card(label, val){
+      return '<div class="stat-card"><div class="mstripe"></div><div class="stat-label">'+label+'</div><div class="stat-num">'+val+'</div></div>';
+    }
+    document.getElementById('detailSummary').innerHTML =
+      card('Total Tercatat', res.summary.total) + card('Hadir', res.summary.hadir) + card('Telat', res.summary.telat) + card('Izin', res.summary.izin) +
+      card('Sakit', res.summary.sakit) + card('Alpha', res.summary.alpha) + card('% Kehadiran', res.summary.persenHadir + '%');
+
+    renderChartDetailTren(res.tren);
+
+    const wrap = document.getElementById('detailRiwayatTable');
+    if(!res.riwayat.length){ wrap.innerHTML = '<div class="empty-state">Belum ada catatan absensi pada periode ini.</div>'; return; }
+    wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Hari</th><th>Kegiatan</th><th>Ustadz</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>'+
+      res.riwayat.map(function(r){
+        const telatInfo = (r.status === 'Telat' && r.menitTelat) ? ' ('+r.menitTelat+' mnt)' : '';
+        return '<tr><td>'+r.tanggal+'</td><td>'+esc(r.hari)+'</td><td>'+esc(r.namaKegiatan)+'</td><td>'+esc(r.namaUstadz)+'</td>'+
+          '<td><span class="status-pill pill-'+r.status+'">'+r.status+telatInfo+'</span></td><td>'+esc(r.keterangan || '-')+'</td></tr>';
+      }).join('')+
+      '</tbody></table></div>';
+  });
+}
+
+function renderChartDetailTren(tren){
+  const ctx = document.getElementById('chartDetailTren').getContext('2d');
+  if(CHART_DETAIL_TREN) CHART_DETAIL_TREN.destroy();
+  CHART_DETAIL_TREN = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: tren.labels.length ? tren.labels : ['-'],
+      datasets: [
+        {label:'Hadir', data:tren.hadir, backgroundColor:'#1FAA59'},
+        {label:'Telat', data:tren.telat, backgroundColor:'#FF7A1A'},
+        {label:'Izin', data:tren.izin, backgroundColor:'#F2A900'},
+        {label:'Sakit', data:tren.sakit, backgroundColor:'#6E2585'},
+        {label:'Alpha', data:tren.alpha, backgroundColor:'#E4002B'}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{labels:{color:'#F2F2F3', font:{size:11}}} },
+      scales:{
+        x:{stacked:true, ticks:{color:'#9A9AA2', font:{size:10}}, grid:{display:false}},
+        y:{stacked:true, ticks:{color:'#9A9AA2'}, grid:{color:'#2A2A2E'}, beginAtZero:true}
+      }
+    }
+  });
+}
+
+/* ============================================================
+   RANKING KEDISIPLINAN (pekanan/bulanan/semesteran/tahunan)
+============================================================ */
+let RANKING_STATE = { periode: 'bulanan', tanggalMulai: '', tanggalAkhir: '', kelasId: '' };
+
+function renderAdminRanking(){
+  const c = document.getElementById('content');
+  const kelasOpt = REF.kelas.map(function(k){ return '<option value="'+k.KelasID+'">'+esc(k.NamaKelas)+'</option>'; }).join('');
+
+  c.innerHTML =
+    '<h1 class="page-title">Ranking Kedisiplinan</h1>'+
+    '<p class="page-sub">Santri paling rajin, paling sering telat, dan paling sering alpha.</p>'+
+    '<div class="pill-group" id="rankingPeriodePills">'+
+      rankingPeriodeBtn('pekanan','Pekanan')+ rankingPeriodeBtn('bulanan','Bulanan')+
+      rankingPeriodeBtn('semesteran','Semesteran')+ rankingPeriodeBtn('tahunan','Tahunan')+
+      rankingPeriodeBtn('custom','Custom')+
+    '</div>'+
+    '<div class="filter-bar" id="rankingCustomRangeWrap" style="display:none;">'+
+      '<input type="date" id="rTglMulai"><input type="date" id="rTglAkhir">'+
+      '<button class="btn btn-outline btn-sm" onclick="terapkanRankingCustomRange()">Terapkan</button>'+
+    '</div>'+
+    '<div class="filter-bar">'+
+      '<select id="rKelasFilter" onchange="muatRanking()"><option value="">Semua Kelas</option>'+kelasOpt+'</select>'+
+    '</div>'+
+    '<p class="page-sub" id="rankingPeriodeLabel"></p>'+
+    '<div class="rank-grid" id="rankingGrid"><div class="empty-state">Memuat...</div></div>';
+
+  setRankingPeriode(RANKING_STATE.periode || 'bulanan');
+}
+
+function rankingPeriodeBtn(id, label){
+  return '<button class="pill-btn" data-rperiode="'+id+'" onclick="setRankingPeriode(\''+id+'\')">'+label+'</button>';
+}
+
+function setRankingPeriode(periode){
+  RANKING_STATE.periode = periode;
+  document.querySelectorAll('#rankingPeriodePills .pill-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-rperiode') === periode);
+  });
+  document.getElementById('rankingCustomRangeWrap').style.display = periode === 'custom' ? 'flex' : 'none';
+
+  if(periode === 'custom'){
+    if(!RANKING_STATE.tanggalMulai){
+      document.getElementById('rTglMulai').value = todayStr();
+      document.getElementById('rTglAkhir').value = todayStr();
+    }
+    return;
+  }
+  call('getRentangPeriode', [periode, todayStr()], function(range){
+    RANKING_STATE.tanggalMulai = range.tanggalMulai;
+    RANKING_STATE.tanggalAkhir = range.tanggalAkhir;
+    muatRanking();
+  });
+}
+
+function terapkanRankingCustomRange(){
+  RANKING_STATE.tanggalMulai = document.getElementById('rTglMulai').value;
+  RANKING_STATE.tanggalAkhir = document.getElementById('rTglAkhir').value;
+  if(!RANKING_STATE.tanggalMulai || !RANKING_STATE.tanggalAkhir){ toast('Isi tanggal mulai & akhir', 'error'); return; }
+  muatRanking();
+}
+
+function muatRanking(){
+  RANKING_STATE.kelasId = document.getElementById('rKelasFilter').value;
+  document.getElementById('rankingPeriodeLabel').textContent =
+    fmtTanggalIndo(RANKING_STATE.tanggalMulai) + '  —  ' + fmtTanggalIndo(RANKING_STATE.tanggalAkhir);
+
+  call('getRankingKedisiplinan', [{ tanggalMulai: RANKING_STATE.tanggalMulai, tanggalAkhir: RANKING_STATE.tanggalAkhir, kelasId: RANKING_STATE.kelasId }], function(res){
+    document.getElementById('rankingGrid').innerHTML =
+      rankCard('🏅 Paling Rajin', res.rajin, function(r){ return r.persenHadir + '% hadir'; }) +
+      rankCard('⏰ Paling Sering Telat', res.telat, function(r){ return r.telat + 'x · avg ' + r.rataMenitTelat + 'm'; }) +
+      rankCard('🚫 Paling Sering Alpha', res.alpha, function(r){ return r.alpha + 'x alpha'; });
+  });
+}
+
+function rankCard(judul, rows, valFn){
+  const medals = ['🥇','🥈','🥉'];
+  const body = rows.length
+    ? rows.map(function(r, i){
+        const medal = medals[i] || ('#'+(i+1));
+        return '<div class="rank-row" onclick="navigate(\'santri-detail\',{santriId:\''+r.id+'\'})">'+
+          '<span class="rank-medal">'+medal+'</span><span class="rank-nama">'+esc(r.nama)+'</span>'+
+          '<span class="rank-val">'+valFn(r)+'</span></div>';
+      }).join('')
+    : '<div class="empty-state">Belum ada data pada periode ini.</div>';
+  return '<div class="rank-card"><div class="rank-card-head">'+judul+'</div>'+body+'</div>';
+}
+
+/* ============================================================
+   DASHBOARD WALI SANTRI (khusus role 'wali', read-only)
+============================================================ */
+let WALI_STATE = { periode: 'bulanan', tanggalMulai: '', tanggalAkhir: '' };
+let CHART_WALI_TREN = null;
+
+function renderWaliDashboard(){
+  const c = document.getElementById('content');
+  c.innerHTML =
+    '<h1 class="page-title">Riwayat Absensi Ananda</h1>'+
+    '<p class="page-sub" id="waliNamaSantri">'+esc(CURRENT_USER.namaSantri || '')+'</p>'+
+    '<div class="pill-group" id="waliPeriodePills">'+
+      waliPeriodeBtn('pekanan','Pekanan')+ waliPeriodeBtn('bulanan','Bulanan')+
+      waliPeriodeBtn('semesteran','Semesteran')+ waliPeriodeBtn('tahunan','Tahunan')+
+    '</div>'+
+    '<div class="stat-grid" id="waliSummary"></div>'+
+    '<div class="chart-card" style="margin-bottom:16px;"><h3>Tren Kehadiran</h3><canvas id="chartWaliTren"></canvas></div>'+
+    '<h3 style="margin:0 0 10px;">Riwayat Kronologis</h3>'+
+    '<div id="waliRiwayatTable"><div class="empty-state">Memuat...</div></div>';
+
+  setWaliPeriode(WALI_STATE.periode || 'bulanan');
+}
+
+function waliPeriodeBtn(id, label){
+  return '<button class="pill-btn" data-wperiode="'+id+'" onclick="setWaliPeriode(\''+id+'\')">'+label+'</button>';
+}
+
+function setWaliPeriode(periode){
+  WALI_STATE.periode = periode;
+  document.querySelectorAll('#waliPeriodePills .pill-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-wperiode') === periode);
+  });
+  call('getRentangPeriode', [periode, todayStr()], function(range){
+    WALI_STATE.tanggalMulai = range.tanggalMulai;
+    WALI_STATE.tanggalAkhir = range.tanggalAkhir;
+    muatWaliDashboard();
+  });
+}
+
+function muatWaliDashboard(){
+  call('getDetailSantri', [CURRENT_USER.santriId, { tanggalMulai: WALI_STATE.tanggalMulai, tanggalAkhir: WALI_STATE.tanggalAkhir }], function(res){
+    document.getElementById('waliNamaSantri').textContent = res.santri.nama + ' · ' + res.santri.namaKelas;
+
+    function card(label, val){
+      return '<div class="stat-card"><div class="mstripe"></div><div class="stat-label">'+label+'</div><div class="stat-num">'+val+'</div></div>';
+    }
+    document.getElementById('waliSummary').innerHTML =
+      card('Total Tercatat', res.summary.total) + card('Hadir', res.summary.hadir) + card('Telat', res.summary.telat) +
+      card('Izin', res.summary.izin) + card('Sakit', res.summary.sakit) + card('Alpha', res.summary.alpha) + card('% Kehadiran', res.summary.persenHadir + '%');
+
+    const ctx = document.getElementById('chartWaliTren').getContext('2d');
+    if(CHART_WALI_TREN) CHART_WALI_TREN.destroy();
+    CHART_WALI_TREN = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels: res.tren.labels.length ? res.tren.labels : ['-'],
+        datasets:[
+          {label:'Hadir', data:res.tren.hadir, backgroundColor:'#1FAA59'},
+          {label:'Telat', data:res.tren.telat, backgroundColor:'#FF7A1A'},
+          {label:'Izin', data:res.tren.izin, backgroundColor:'#F2A900'},
+          {label:'Sakit', data:res.tren.sakit, backgroundColor:'#6E2585'},
+          {label:'Alpha', data:res.tren.alpha, backgroundColor:'#E4002B'}
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        plugins:{legend:{labels:{color:'#F2F2F3', font:{size:11}}}},
+        scales:{
+          x:{stacked:true, ticks:{color:'#9A9AA2', font:{size:10}}, grid:{display:false}},
+          y:{stacked:true, ticks:{color:'#9A9AA2'}, grid:{color:'#2A2A2E'}, beginAtZero:true}
+        }
+      }
+    });
+
+    const wrap = document.getElementById('waliRiwayatTable');
+    if(!res.riwayat.length){ wrap.innerHTML = '<div class="empty-state">Belum ada catatan absensi pada periode ini.</div>'; return; }
+    wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Hari</th><th>Kegiatan</th><th>Ustadz</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>'+
+      res.riwayat.map(function(r){
+        const telatInfo = (r.status === 'Telat' && r.menitTelat) ? ' ('+r.menitTelat+' mnt)' : '';
+        return '<tr><td>'+r.tanggal+'</td><td>'+esc(r.hari)+'</td><td>'+esc(r.namaKegiatan)+'</td><td>'+esc(r.namaUstadz)+'</td>'+
+          '<td><span class="status-pill pill-'+r.status+'">'+r.status+telatInfo+'</span></td><td>'+esc(r.keterangan || '-')+'</td></tr>';
+      }).join('')+
+      '</tbody></table></div>';
+  });
+}
+</script>
+</body>
+</html>
